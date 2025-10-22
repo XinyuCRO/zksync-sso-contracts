@@ -3,6 +3,7 @@ import {
   Hex,
   pad,
   concat,
+  toHex,
   type Address,
   type PublicClient,
 } from "viem";
@@ -47,16 +48,34 @@ export class SsoAccount {
                 abi: entryPoint08Abi
             },
             async encodeCalls(calls) {
-                const modeCode = pad('0x01', { dir: 'right' }); // simple batch execute
-                const executionData = encodeAbiParameters(
-                    callAbi,
-                    [calls.map(call => ({ to: call.to, value: call.value ?? 0n, data: call.data ?? '0x' }))]
-                );
                 const selector = '0xe9ae5c53'; // execute(bytes32,bytes)
-                return concat([
-                    selector,
-                    encodeAbiParameters([{ type: 'bytes32' }, { type: 'bytes' }], [modeCode, executionData])
-                ]);
+                
+                if (calls.length === 1) {
+                    // Single call mode (0x00)
+                    // Format: target (20 bytes) | value (32 bytes) | data (remaining bytes)
+                    const modeCode = pad('0x00', { dir: 'right' });
+                    const call = calls[0];
+                    const executionData = concat([
+                        call.to,  // 20 bytes address (NOT padded)
+                        pad(toHex(call.value ?? 0n), { size: 32 }),  // pad value to 32 bytes
+                        call.data ?? '0x'  // raw data bytes
+                    ]);
+                    return concat([
+                        selector,
+                        encodeAbiParameters([{ type: 'bytes32' }, { type: 'bytes' }], [modeCode, executionData])
+                    ]);
+                } else {
+                    // Batch call mode (0x01)
+                    const modeCode = pad('0x01', { dir: 'right' });
+                    const executionData = encodeAbiParameters(
+                        callAbi,
+                        [calls.map(call => ({ to: call.to, value: call.value ?? 0n, data: call.data ?? '0x' }))]
+                    );
+                    return concat([
+                        selector,
+                        encodeAbiParameters([{ type: 'bytes32' }, { type: 'bytes' }], [modeCode, executionData])
+                    ]);
+                }
             },
             async getAddress() {
                 return address;

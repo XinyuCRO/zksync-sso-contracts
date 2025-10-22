@@ -35,13 +35,13 @@ export function createClients(anvilPort: number, bundlerPort: number) {
 
     const client = createPublicClient({
         chain: localhost,
-        transport: http(`http://localhost:${anvilPort}`),
+        transport: http(`http://127.0.0.1:${anvilPort}`),
         pollingInterval,
     }).extend(walletActions);
 
     const bundlerClient = createBundlerClient({
         client,
-        transport: http(`http://localhost:${bundlerPort}`),
+        transport: http(`http://127.0.0.1:${bundlerPort}`),
         pollingInterval,
     });
 
