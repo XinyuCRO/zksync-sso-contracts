@@ -3,7 +3,7 @@ import { contractAddresses, createClients, toEOASigner } from "../integration/ut
 import { localhost } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { SsoAccount } from "../integration/account";
-import { createDelegation, fundAcc, initializeAccount, log, printAccountInfo, printBalance } from "./utils";
+import { createDelegation, createDelegationAndInitialize, fundAcc, initializeAccount, log, printAccountInfo, printBalance } from "./utils";
 import { ANVIL_PORT, BUNDLER_PORT, DEAD_ADDRESS } from "./constants";
 import { addPasskey, generatePasskeys, nativeTransferWithPasskey, verifyPasskeyAdded } from "./passkey";
 import { isSessionValidatorInstalled, installSessionValidator, createSession, createBasicSessionSpec, transferWithSession, verifySessionActive } from "./session";
@@ -33,16 +33,18 @@ const main = async () => {
         transport: http()
     })
 
-    // 🔵 set delegation to smart account template
-    await createDelegation(client, walletClient, addresses.account)
+    // // 🔵 set delegation to smart account template
+    // await createDelegation(client, walletClient, addresses.account)
 
-    // 🔵 call the initializeAccount function on the delegated EOA
-    await initializeAccount(
-      addresses,
-      eoaAccount.address,
-      walletClient,
-      client
-    )
+    // // 🔵 call the initializeAccount function on the delegated EOA
+    // await initializeAccount(
+    //   addresses,
+    //   eoaAccount.address,
+    //   walletClient,
+    //   client
+    // )
+
+    await createDelegationAndInitialize(addresses, client, walletClient, addresses.account)
 
     // 🔵 verify the account is initialized
     await printAccountInfo(

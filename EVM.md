@@ -1,12 +1,15 @@
 # ZKSync SSO on EIP-7702 + EIP-4337 for EVM
 
 
-## Local Development
+## Install Dependencies
 
-1. Install workspace dependencies with `forge soldeer install`.
-2. Build the project with `forge build`.
+```sh
+cd contracts
+forge soldeer install
+forge build
+```
 
-To run the integration tests:
+To run the example:
 
 1. Install dependencies with `pnpm install`
 2. Run the local development node with `pnpm anvil`

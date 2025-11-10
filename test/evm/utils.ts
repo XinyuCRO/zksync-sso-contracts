@@ -166,6 +166,89 @@ export const initializeAccount = async (
     log(`InitializeAccount status: ${initReceipt.status}`);
 }
 
+export const createDelegationAndInitialize = async (
+    addresses: any,
+    client: PublicClient,
+    walletClient: WalletClient,
+    impl: Address
+) => {
+    if (!walletClient.account) {
+        throw new Error("Wallet client has no account");
+    }
+
+    const eoaAddress = walletClient.account.address;
+
+    const eoaCodeBefore = await client.getCode({
+        address: eoaAddress
+    })
+    log("eoaCode before: ", eoaCodeBefore)
+
+    // Sign the authorization
+    const authorization = await walletClient.signAuthorization({
+        account: walletClient.account,
+        contractAddress: impl,
+        executor: "self",
+    })
+
+    // Prepare modules and init data
+    const modules = [
+        addresses.eoaValidator,
+        addresses.sessionValidator,
+        addresses.webauthnValidator,
+        addresses.guardiansExecutor
+    ];
+
+    const initData: Hex[] = [
+        encodeAbiParameters(
+            [{ type: 'address[]' }],
+            [[eoaAddress]] // EOA owner
+        ),
+        "0x", // sessionValidator init data
+        "0x", // webauthnValidator init data
+        "0x"  // guardiansExecutor init data
+    ];
+
+    // Encode the initializeAccount function call
+    const callData = encodeFunctionData({
+        abi: [{
+            name: 'initializeAccount',
+            type: 'function',
+            stateMutability: 'payable',
+            inputs: [
+                { name: 'modules', type: 'address[]' },
+                { name: 'data', type: 'bytes[]' }
+            ],
+            outputs: []
+        }],
+        functionName: 'initializeAccount',
+        args: [modules, initData]
+    });
+
+    // Send transaction with both delegation and initialization
+    const hash = await walletClient.sendTransaction({
+        account: walletClient.account,
+        chain: localhost,
+        authorizationList: [authorization],
+        data: callData,
+        to: eoaAddress,
+    });
+    
+    log(`Delegated and initialized in tx ${hash}`);
+
+    const receipt = await client.waitForTransactionReceipt({
+        hash
+    })
+
+    log(`Transaction status: ${receipt.status}`);
+
+    const eoaCodeAfter = await client.getCode({
+        address: eoaAddress
+    })
+    log("eoaCode after: ", eoaCodeAfter)
+
+    return receipt;
+}
+
 export const printAccountInfo = async (
     client: PublicClient,
     eoaAddress: Address,
